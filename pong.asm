@@ -10,6 +10,8 @@ DATA SEGMENT PARA 'DATA'
 
     TIME_AUX DB 0 ;define a variable to store the system time
 
+    BALL_ORIGINAL_X DW 0A0h
+    BALL_ORIGINAL_Y DW 64h
     BALL_X DW 0Ah ;define the x coordinate of the ball
     BALL_Y DW 0Ah ;define the y coordinate of the ball
     BALL_SIZE DW 04h ;define the size of the ball (pixels)
@@ -54,35 +56,35 @@ CODE SEGMENT PARA 'CODE'
     MOVE_BALL PROC NEAR
 
         MOV AX,BALL_VELOCITY_X 
-        ADD BALL_X,AX ;update the x coordinate of the ball
+        ADD BALL_X,AX           ;update the x coordinate of the ball
 
         MOV AX,WINDOW_BOUNDS
-        CMP BALL_X,AX ;check if the ball has reached the left edge of the window
-        JL REVERSE_X   ;if so, reverse the x velocity
+        CMP BALL_X,AX           ;check if the ball has reached the left edge of the window
+        JL RESET_POSITION       ;if so, reset the ball position
 
         MOV AX,WINDOW_WIDTH 
         SUB AX,BALL_SIZE
         SUB AX,WINDOW_BOUNDS
-        CMP BALL_X,AX ;check if the ball has reached the right edge of the window
-        JG REVERSE_X
+        CMP BALL_X,AX           ;check if the ball has reached the right edge of the window
+        JG RESET_POSITION       ;if so, reset the ball position
 
         MOV AX,BALL_VELOCITY_Y
-        ADD BALL_Y,AX ;update the y coordinate of the ball
+        ADD BALL_Y,AX           ;update the y coordinate of the ball
 
         MOV AX,WINDOW_BOUNDS
-        CMP BALL_Y,AX ;check if the ball has reached the top edge of the window
-        JL REVERSE_Y   ;if so, reverse the y velocity
+        CMP BALL_Y,AX           ;check if the ball has reached the top edge of the window
+        JL REVERSE_Y            ;if so, reverse the y velocity
 
         MOV AX,WINDOW_HEIGHT 
         SUB AX,BALL_SIZE
         SUB AX,WINDOW_BOUNDS
-        CMP BALL_Y,AX ;check if the ball has reached the bottom edge of the window
-        JG REVERSE_Y ;if so, reverse the y velocity
+        CMP BALL_Y,AX           ;check if the ball has reached the bottom edge of the window
+        JG REVERSE_Y            ;if so, reverse the y velocity
 
         RET
 
-        REVERSE_X:
-            NEG BALL_VELOCITY_X ;reverse the x velocity
+        RESET_POSITION:
+            CALL RESET_BALL_POSITION
             RET
 
         REVERSE_Y:
@@ -90,6 +92,17 @@ CODE SEGMENT PARA 'CODE'
             RET
 
     MOVE_BALL ENDP
+
+    RESET_BALL_POSITION PROC NEAR
+
+        MOV AX,BALL_ORIGINAL_X
+        MOV BALL_X,AX ;reset the x coordinate of the ball
+
+        MOV AX,BALL_ORIGINAL_Y
+        MOV BALL_Y,AX ;reset the y coordinate of the ball
+
+        RET
+    RESET_BALL_POSITION ENDP    
 
     CLEAR_SCREEN PROC NEAR
 
@@ -123,9 +136,9 @@ CODE SEGMENT PARA 'CODE'
             JNG DRAW_BALL_HORIZONTAL
 
             MOV CX,BALL_X ;reset the x coordinate
-            INC DX      ;move to the next line (DY = DY + 1)
+            INC DX        ;move to the next line (DY = DY + 1)
 
-            MOV AX,DX   ;DX - BALL_Y > BALL_SIZE ? end : next line
+            MOV AX,DX     ;DX - BALL_Y > BALL_SIZE ? end : next line
             SUB AX,BALL_Y
             CMP AX,BALL_SIZE
             JNG DRAW_BALL_HORIZONTAL
