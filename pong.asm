@@ -9,6 +9,8 @@ DATA SEGMENT PARA 'DATA'
     BALL_X DW 0Ah ;define the x coordinate of the ball
     BALL_Y DW 0Ah ;define the y coordinate of the ball
     BALL_SIZE DW 04h ;define the size of the ball (pixels)
+    BALL_VELOCITY_X DW 05h ;define the velocity of the ball in the x direction
+    BALL_VELOCITY_Y DW 02h ;define the velocity of the ball in the y direction
 
 DATA ENDS
 
@@ -24,31 +26,50 @@ CODE SEGMENT PARA 'CODE'
     POP AX                          ;restore the original value of AX from the stack
     POP AX                          ;restore the original value of DS from the stack
 
+        CALL CLEAR_SCREEN  ;clear the screen
+
+        CHECK_TIME:
+            MOV AH,2Ch        ;function to get the system time
+            INT 21h           ;CH = hour, CL = minute, DH = second, DL = 1/100 second
+
+            CMP DL,TIME_AUX 
+            JE CHECK_TIME     ;if the time hasn't changed, keep checking
+            
+            MOV TIME_AUX,DL   ;update the time_aux variable
+            
+            CALL CLEAR_SCREEN ;clear the screen
+            CALL MOVE_BALL    ;move the ball based on the current time
+            CALL DRAW_BALL    ;if the time has changed, draw the ball
+
+            JMP CHECK_TIME    ;keep checking the time
+
+        RET
+
+    MAIN ENDP
+
+    MOVE_BALL PROC NEAR
+
+        MOV AX,BALL_VELOCITY_X 
+        ADD BALL_X,AX ;update the x coordinate of the ball
+        MOV AX,BALL_VELOCITY_Y
+        ADD BALL_Y,AX ;update the y coordinate of the ball
+
+        RET
+    MOVE_BALL ENDP
+
+    CLEAR_SCREEN PROC NEAR
+
         MOV AH,00h  ;function to set video mode
         MOV AL,13h  ;set the video mode (320x200, 256 colors)
         INT 10h     ;execute the configuration
-
+            
         MOV AH,0Bh  ;function to set background color
         MOV BH,00h  ;specify the display page number (page 0)
         MOV BL,00h  ;specify the background color (black)
         INT 10h     ;execute the configuration
 
-        CHECK_TIME:
-            MOV AH,2Ch      ;function to get the system time
-            INT 21h         ;CH = hour, CL = minute, DH = second, DL = 1/100 second
-
-            CMP DL,TIME_AUX 
-            JE CHECK_TIME   ;if the time hasn't changed, keep checking
-            
-            MOV TIME_AUX,DL ;update the time_aux variable
-            INC BALL_X      ;move the ball to the right
-            CALL DRAW_BALL  ;if the time has changed, draw the ball
-
-            JMP CHECK_TIME  ;keep checking the time
-
         RET
-
-    MAIN ENDP
+    CLEAR_SCREEN ENDP
 
     DRAW_BALL PROC NEAR
 
