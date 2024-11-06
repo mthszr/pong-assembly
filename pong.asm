@@ -28,6 +28,7 @@ DATA SEGMENT PARA 'DATA'
     
     PADDLE_WIDTH DW 06h ;define the width of the paddles (pixels)
     PADDLE_HEIGHT DW 1Fh ;define the height of the paddles (pixels)
+    PADDLE_VELOCITY DW 05h ;define the velocity of the paddles
 
 DATA ENDS
 
@@ -58,6 +59,7 @@ CODE SEGMENT PARA 'CODE'
             CALL MOVE_BALL    ;move the ball based on the current time
             CALL DRAW_BALL    ;if the time has changed, draw the ball
 
+            CALL MOVE_PADDLES
             CALL DRAW_PADDLES ;draw the player paddles
 
             JMP CHECK_TIME    ;keep checking the time
@@ -105,6 +107,59 @@ CODE SEGMENT PARA 'CODE'
             RET
 
     MOVE_BALL ENDP
+
+    MOVE_PADDLES PROC NEAR
+
+        MOV AH,01h  ;function to check for a key press
+        INT 16h     ;execute the configuration
+        JZ CHECK_RIGHT_PADDLE_MOVEMENT ;if no key is pressed, check the right paddle movement
+
+        MOV AH,00h  ;function to get the scan code of the key pressed
+        INT 16h     ;execute the configuration
+        
+        ;AL contains the ASCII code of the key pressed
+        CMP AL,77h  ;check if the key pressed is 'w' (move the left paddle up)
+        JE MOVE_LEFT_PADDLE_UP
+        CMP AL,57h  ;check if the key pressed is 'W' (move the left paddle up)
+        JE MOVE_LEFT_PADDLE_UP
+
+        CMP AL,73h  ;check if the key pressed is 's' (move the left paddle down)
+        JE MOVE_LEFT_PADDLE_DOWN
+        CMP AL,53h  ;check if the key pressed is 'S' (move the left paddle down)
+        JE MOVE_LEFT_PADDLE_DOWN
+        JMP CHECK_RIGHT_PADDLE_MOVEMENT ;if the key pressed is not 'w' or 's', check the right paddle movement
+
+        MOVE_LEFT_PADDLE_UP:
+            MOV AX, PADDLE_VELOCITY
+            SUB PADDLE_LEFT_Y,AX ;move the left paddle up
+
+            MOV AX,WINDOW_BOUNDS
+            CMP PADDLE_LEFT_Y, AX ;check if the paddle has reached the top edge of the window
+            JL FIX_PADDLE_LEFT_TOP_POSITION ;if so, fix the paddle position
+            JMP CHECK_RIGHT_PADDLE_MOVEMENT 
+
+            FIX_PADDLE_LEFT_TOP_POSITION:
+                MOV PADDLE_LEFT_Y,AX ;set the paddle position to the top edge of the window
+                JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+        MOVE_LEFT_PADDLE_DOWN:
+            MOV AX, PADDLE_VELOCITY
+            ADD PADDLE_LEFT_Y,AX ;move the left paddle down
+
+            MOV AX,WINDOW_HEIGHT
+            SUB AX,WINDOW_BOUNDS
+            SUB AX,PADDLE_HEIGHT
+            CMP PADDLE_LEFT_Y,AX ;check if the paddle has reached the bottom edge of the window
+            JG FIX_PADDLE_LEFT_BOTTOM_POSITION ;if so, fix the paddle position
+            JMP CHECK_RIGHT_PADDLE_MOVEMENT 
+
+            FIX_PADDLE_LEFT_BOTTOM_POSITION:
+                MOV PADDLE_LEFT_Y,AX ;set the paddle position to the bottom edge of the window
+                JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+        CHECK_RIGHT_PADDLE_MOVEMENT:
+        RET
+    MOVE_PADDLES ENDP
 
     RESET_BALL_POSITION PROC NEAR
 
