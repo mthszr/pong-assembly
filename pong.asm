@@ -4,6 +4,8 @@ STACK ENDS
 
 DATA SEGMENT PARA 'DATA'
 
+    TIME_AUX DB 0 ;define a variable to store the system time
+
     BALL_X DW 0Ah ;define the x coordinate of the ball
     BALL_Y DW 0Ah ;define the y coordinate of the ball
     BALL_SIZE DW 04h ;define the size of the ball (pixels)
@@ -31,7 +33,18 @@ CODE SEGMENT PARA 'CODE'
         MOV BL,00h  ;specify the background color (black)
         INT 10h     ;execute the configuration
 
-        CALL DRAW_BALL
+        CHECK_TIME:
+            MOV AH,2Ch      ;function to get the system time
+            INT 21h         ;CH = hour, CL = minute, DH = second, DL = 1/100 second
+
+            CMP DL,TIME_AUX 
+            JE CHECK_TIME   ;if the time hasn't changed, keep checking
+            
+            MOV TIME_AUX,DL ;update the time_aux variable
+            INC BALL_X      ;move the ball to the right
+            CALL DRAW_BALL  ;if the time has changed, draw the ball
+
+            JMP CHECK_TIME  ;keep checking the time
 
         RET
 
