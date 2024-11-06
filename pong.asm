@@ -4,6 +4,10 @@ STACK ENDS
 
 DATA SEGMENT PARA 'DATA'
 
+    WINDOW_WIDTH DW 140h  ;define the width of the window (320 pixels)
+    WINDOW_HEIGHT DW 0C8h ;define the height of the window (200 pixels)
+    WINDOW_BOUNDS DW 6    ;define the bounds of the window (6 pixels from the edge)
+
     TIME_AUX DB 0 ;define a variable to store the system time
 
     BALL_X DW 0Ah ;define the x coordinate of the ball
@@ -51,10 +55,40 @@ CODE SEGMENT PARA 'CODE'
 
         MOV AX,BALL_VELOCITY_X 
         ADD BALL_X,AX ;update the x coordinate of the ball
+
+        MOV AX,WINDOW_BOUNDS
+        CMP BALL_X,AX ;check if the ball has reached the left edge of the window
+        JL REVERSE_X   ;if so, reverse the x velocity
+
+        MOV AX,WINDOW_WIDTH 
+        SUB AX,BALL_SIZE
+        SUB AX,WINDOW_BOUNDS
+        CMP BALL_X,AX ;check if the ball has reached the right edge of the window
+        JG REVERSE_X
+
         MOV AX,BALL_VELOCITY_Y
         ADD BALL_Y,AX ;update the y coordinate of the ball
 
+        MOV AX,WINDOW_BOUNDS
+        CMP BALL_Y,AX ;check if the ball has reached the top edge of the window
+        JL REVERSE_Y   ;if so, reverse the y velocity
+
+        MOV AX,WINDOW_HEIGHT 
+        SUB AX,BALL_SIZE
+        SUB AX,WINDOW_BOUNDS
+        CMP BALL_Y,AX ;check if the ball has reached the bottom edge of the window
+        JG REVERSE_Y ;if so, reverse the y velocity
+
         RET
+
+        REVERSE_X:
+            NEG BALL_VELOCITY_X ;reverse the x velocity
+            RET
+
+        REVERSE_Y:
+            NEG BALL_VELOCITY_Y ;reverse the Y velocity
+            RET
+
     MOVE_BALL ENDP
 
     CLEAR_SCREEN PROC NEAR
