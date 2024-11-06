@@ -18,6 +18,17 @@ DATA SEGMENT PARA 'DATA'
     BALL_VELOCITY_X DW 05h ;define the velocity of the ball in the x direction
     BALL_VELOCITY_Y DW 02h ;define the velocity of the ball in the y direction
 
+    ;player paddles
+    ;player 1
+    PADDLE_LEFT_X DW 0Ah ;define the x coordinate of the left paddle for player 1
+    PADDLE_LEFT_Y DW 55h ;define the y coordinate of the left paddle for player 1
+
+    PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
+    PADDLE_RIGHT_Y DW 55h ;define the y coordinate of the left paddle for player 2
+    
+    PADDLE_WIDTH DW 06h ;define the width of the paddles (pixels)
+    PADDLE_HEIGHT DW 1Fh ;define the height of the paddles (pixels)
+
 DATA ENDS
 
 CODE SEGMENT PARA 'CODE'
@@ -46,6 +57,8 @@ CODE SEGMENT PARA 'CODE'
             CALL CLEAR_SCREEN ;clear the screen
             CALL MOVE_BALL    ;move the ball based on the current time
             CALL DRAW_BALL    ;if the time has changed, draw the ball
+
+            CALL DRAW_PADDLES ;draw the player paddles
 
             JMP CHECK_TIME    ;keep checking the time
 
@@ -145,6 +158,56 @@ CODE SEGMENT PARA 'CODE'
 
         RET
     DRAW_BALL ENDP
+
+    DRAW_PADDLES PROC NEAR
+
+        MOV CX,PADDLE_LEFT_X 
+        MOV DX,PADDLE_LEFT_Y
+
+        DRAW_PADDLE_LEFT_HORIZONTAL:
+            MOV AH,0Ch  ;function to draw a pixel
+            MOV AL,0Fh  ;choose white as the pixel color
+            MOV BH,00h  ;specify the display page number (page 0)
+            INT 10H     ;execute the configuration
+
+            INC CX      ;move to the next pixel
+            MOV AX,CX   ;CX - PADDLE_LEFT_X > PADDLE_WIDTH ? nex line : next pixel
+            SUB AX,PADDLE_LEFT_X
+            CMP AX,PADDLE_WIDTH
+            JNG DRAW_PADDLE_LEFT_HORIZONTAL
+
+            MOV CX,PADDLE_LEFT_X ;reset the x coordinate
+            INC DX               ;move to the next line
+
+            MOV AX,DX   ;DX - PADDLE_LEFT-_Y > PADDLE_HEIGHT ? end : next line
+            SUB AX,PADDLE_LEFT_Y
+            CMP AX,PADDLE_HEIGHT
+            JNG DRAW_PADDLE_LEFT_HORIZONTAL
+
+        MOV CX,PADDLE_RIGHT_X 
+        MOV DX,PADDLE_RIGHT_Y
+
+        DRAW_PADDLE_RIGHT_HORIZONTAL:
+            MOV AH,0Ch  ;function to draw a pixel
+            MOV AL,0Fh  ;choose white as the pixel color
+            MOV BH,00h  ;specify the display page number (page 0)
+            INT 10H     ;execute the configuration
+
+            INC CX      ;move to the next pixel
+            MOV AX,CX   ;CX - PADDLE_LEFT_X > PADDLE_WIDTH ? nex line : next pixel
+            SUB AX,PADDLE_RIGHT_X
+            CMP AX,PADDLE_WIDTH
+            JNG DRAW_PADDLE_RIGHT_HORIZONTAL
+
+            MOV CX,PADDLE_RIGHT_X ;reset the x coordinate
+            INC DX               ;move to the next line
+
+            MOV AX,DX   ;DX - PADDLE_LEFT-_Y > PADDLE_HEIGHT ? end : next line
+            SUB AX,PADDLE_RIGHT_Y
+            CMP AX,PADDLE_HEIGHT
+            JNG DRAW_PADDLE_RIGHT_HORIZONTAL
+        RET
+    DRAW_PADDLES ENDP
 
 CODE ENDS
 END MAIN
