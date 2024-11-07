@@ -17,6 +17,7 @@ DATA SEGMENT PARA 'DATA'
     TEXT_PLAYER_TWO_SCORE DB '0','$'
     TEXT_GAME_OVER DB 'GAME OVER','$'
     TEXT_GAME_WINNER DB 'Player 0 wins!','$'
+    TEXT_PLAY_AGAIN DB 'Press R to play again','$'
     
     ;ball
     BALL_ORIGINAL_X DW 0A0h
@@ -143,12 +144,12 @@ CODE SEGMENT PARA 'CODE'
         GAME_OVER:
 
             ;determine the winner
-            CMP PLAYER_ONE_POINTS,01h
+            CMP PLAYER_ONE_POINTS,00h
             JNL WINNER_IS_PLAYER_ONE
             JMP WINNER_IS_PLAYER_TWO
 
             WINNER_IS_PLAYER_ONE:
-                MOV WINNER_INDEX,01h ;set the winner index to player one
+                MOV WINNER_INDEX,00h ;set the winner index to player one
                 JMP CONTINUE_GAME_OVER
             WINNER_IS_PLAYER_TWO:
                 MOV WINNER_INDEX,02h ;set the winner index to player two
@@ -513,18 +514,18 @@ CODE SEGMENT PARA 'CODE'
         MOV AH,02h  ;function to set the cursor position
         MOV BH,00h  ;specify the display page number (page 0)
         MOV DH,04h  ;set the row position 
-        MOV DL,04h  ;set the column position
+        MOV DL,0Fh  ;set the column position
         INT 10h     ;execute the configuration
 
         MOV AH,09h  ;function to display a string
         LEA DX,TEXT_GAME_OVER ;load the address of the string
         INT 21h     ;execute the configuration
 
-        ;shows the winner
+        ;shows the winner message
         MOV AH,02h  ;function to set the cursor position
         MOV BH,00h  ;specify the display page number (page 0)
-        MOV DH,16h  ;set the row position 
-        MOV DL,08h  ;set the column position
+        MOV DH,06h  ;set the row position 
+        MOV DL,0Fh  ;set the column position
         INT 10h     ;execute the configuration
 
         CALL UPDATE_WINNER_TEXT
@@ -533,9 +534,32 @@ CODE SEGMENT PARA 'CODE'
         LEA DX,TEXT_GAME_WINNER ;load the address of the string
         INT 21h     ;execute the configuration
 
+        ;show the play again message
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,08h  ;set the row position 
+        MOV DL,9h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_PLAY_AGAIN ;load the address of the string
+        INT 21h     ;execute the configuration
+
         ;wait for a key press to restart the game
         MOV AH,00h  ;function to check for a key press
         INT 16h     ;execute the configuration
+
+        CMP AL,'R'  ;check if the key pressed is 'R' (restart the game)
+        JE RESTART_GAME
+        CMP AL,'r'  ;check if the key pressed is 'r' (restart the game)
+        JE RESTART_GAME
+        RET
+
+        RESTART_GAME:
+            MOV GAME_ACTIVE,01h ;set the game flag to active
+            CALL CLEAR_SCREEN   ;clear the screen
+            CALL RESET_POSITION ;reset the ball position
+            RET
 
         RET
 
