@@ -10,9 +10,13 @@ DATA SEGMENT PARA 'DATA'
     WINDOW_BOUNDS DW 6     ;define the bounds of the window (6 pixels from the edge)
 
     TIME_AUX DB 0          ;define a variable to store the system time
+    GAME_ACTIVE DB 1       ;define a flag to indicate if the game is active
+    WINNER_INDEX DB 0      ;define a variable to store the index of the winner  
 
     TEXT_PLAYER_ONE_SCORE DB '0','$' 
     TEXT_PLAYER_TWO_SCORE DB '0','$'
+    TEXT_GAME_OVER DB 'GAME OVER','$'
+    TEXT_GAME_WINNER DB 'Player 0 wins!','$'
     
     ;ball
     BALL_ORIGINAL_X DW 0A0h
@@ -56,7 +60,11 @@ CODE SEGMENT PARA 'CODE'
 
         CALL CLEAR_SCREEN           ;clear the screen
 
-        CHECK_TIME:           
+        CHECK_TIME:     
+
+            CMP GAME_ACTIVE,00h ;check if the game is active   
+            JE SHOW_GAME_OVER_MENU ;if not, show the game over menu
+
             MOV AH,2Ch        ;function to get the system time
             INT 21h           ;CH = hour, CL = minute, DH = second, DL = 1/100 second
 
@@ -77,6 +85,10 @@ CODE SEGMENT PARA 'CODE'
             CALL DRAW_UI      ;draw the user interface
 
             JMP CHECK_TIME    ;check the time again
+
+            SHOW_GAME_OVER_MENU:
+                CALL DRAW_GAME_OVER_MENU ;draw the game over menu
+                JMP CHECK_TIME
 
         RET
 
@@ -108,7 +120,7 @@ CODE SEGMENT PARA 'CODE'
 
             CALL UPDATE_PLAYER_ONE_SCORE
             
-            CMP PLAYER_ONE_POINTS,05h ;check if player one has reached the winning score
+            CMP PLAYER_ONE_POINTS,01h ;check if player one has reached the winning score
             JGE GAME_OVER             ;if so, the game is over
 
             RET
@@ -129,11 +141,26 @@ CODE SEGMENT PARA 'CODE'
             RET
 
         GAME_OVER:
-            MOV PLAYER_ONE_POINTS,00h ;reset the points of player one
-            MOV PLAYER_TWO_POINTS,00h ;reset the points of player two
-            CALL UPDATE_PLAYER_ONE_SCORE
-            CALL UPDATE_PLAYER_TWO_SCORE
-            RET
+
+            ;determine the winner
+            CMP PLAYER_ONE_POINTS,01h
+            JNL WINNER_IS_PLAYER_ONE
+            JMP WINNER_IS_PLAYER_TWO
+
+            WINNER_IS_PLAYER_ONE:
+                MOV WINNER_INDEX,01h ;set the winner index to player one
+                JMP CONTINUE_GAME_OVER
+            WINNER_IS_PLAYER_TWO:
+                MOV WINNER_INDEX,02h ;set the winner index to player two
+                JMP CONTINUE_GAME_OVER
+
+            CONTINUE_GAME_OVER:
+                MOV PLAYER_ONE_POINTS,00h ;reset the points of player one
+                MOV PLAYER_TWO_POINTS,00h ;reset the points of player two
+                CALL UPDATE_PLAYER_ONE_SCORE
+                CALL UPDATE_PLAYER_TWO_SCORE
+                MOV GAME_ACTIVE,00h       ;set the game flag to inactive
+                RET
 
         ;vertical movement
         MOVE_BALL_VERTICAL: 
@@ -477,7 +504,53 @@ CODE SEGMENT PARA 'CODE'
         RET
 
     UPDATE_PLAYER_TWO_SCORE ENDP
-    
+
+    DRAW_GAME_OVER_MENU PROC NEAR
+
+        CALL CLEAR_SCREEN
+        
+       ;show the game over message
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,04h  ;set the row position 
+        MOV DL,04h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_GAME_OVER ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;shows the winner
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,16h  ;set the row position 
+        MOV DL,08h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        CALL UPDATE_WINNER_TEXT
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_GAME_WINNER ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;wait for a key press to restart the game
+        MOV AH,00h  ;function to check for a key press
+        INT 16h     ;execute the configuration
+
+        RET
+
+    DRAW_GAME_OVER_MENU ENDP
+
+    UPDATE_WINNER_TEXT PROC NEAR
+
+        MOV AL,WINNER_INDEX
+        ADD AL,30h
+        MOV [TEXT_GAME_WINNER + 7],AL ;update the winner index in the string
+
+        RET
+
+    UPDATE_WINNER_TEXT ENDP
+
     CLEAR_SCREEN PROC NEAR ;clear the screen by restarting the video mode
 
         MOV AH,00h  ;function to set video mode
