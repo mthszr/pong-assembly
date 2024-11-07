@@ -110,6 +110,49 @@ CODE SEGMENT PARA 'CODE'
         CMP BALL_Y,AX           ;check if the ball has reached the bottom edge of the window
         JG REVERSE_Y            ;if so, reverse the y velocity
 
+        ;collision with the paddles (axis aligned bounding box) 
+        ;MAX_X1 > MIN_X2 && MIN_X1 < MAX_X2 && MAX_Y1 > MIN_Y2 && MIN_Y1 < MAX_Y2
+
+        ;right paddle collision
+
+        ;first condition: BALL_X + BALL_SIZE > PADDLE_RIGHT_X
+        ;second condition: BALL_X < PADDLE_RIGHT_X + PADDLE_WIDTH
+        ;third condition: BALL_Y + BALL_SIZE > PADDLE_RIGHT_Y
+        ;fourth condition: BALL_Y < PADDLE_RIGHT_Y + PADDLE_HEIGHT
+
+        MOV AX,BALL_x
+        ADD AX,BALL_SIZE
+        CMP AX,PADDLE_RIGHT_X
+        JNG CHECK_COLLISION_WITH_LEFT_PADDLE
+
+        MOV AX,PADDLE_RIGHT_X
+        ADD AX,PADDLE_WIDTH
+        CMP BALL_X,AX
+        JNL CHECK_COLLISION_WITH_LEFT_PADDLE
+
+        MOV AX,BALL_Y
+        ADD AX,BALL_SIZE
+        CMP AX,PADDLE_RIGHT_Y
+        JNG CHECK_COLLISION_WITH_LEFT_PADDLE
+
+        MOV AX,PADDLE_RIGHT_Y
+        ADD AX,PADDLE_HEIGHT
+        CMP BALL_Y,AX
+        JNL CHECK_COLLISION_WITH_LEFT_PADDLE
+
+        ;if all conditions above are met, a collision with the right paddle has occurred
+        NEG BALL_VELOCITY_X ;and the ball should reverse its x velocity
+        RET                 ;only one collision can occur at a time
+
+        ;left paddle collision
+
+        ;first condition: BALL_X + BALL_SIZE > PADDLE_LEFT_X
+        ;second condition: BALL_X < PADDLE_LEFT_X + PADDLE_WIDTH
+        ;third condition: BALL_Y + BALL_SIZE > PADDLE_LEFT_Y
+        ;fourth condition: BALL_Y < PADDLE_LEFT_Y + PADDLE_HEIGHT
+
+        CHECK_COLLISION_WITH_LEFT_PADDLE:
+
         RET
 
         RESET_POSITION: ;reset the ball position to the center of the window
@@ -239,6 +282,7 @@ CODE SEGMENT PARA 'CODE'
         MOV DX,BALL_Y ;set the initial y coordinate
 
         DRAW_BALL_HORIZONTAL:  
+
             MOV AH,0Ch  ;function to draw a pixel
             MOV AL,0Fh  ;choose white as the pixel color (white)
             MOV BH,00h  ;specify the display page number (page 0)
@@ -267,6 +311,7 @@ CODE SEGMENT PARA 'CODE'
         MOV DX,PADDLE_LEFT_Y
 
         DRAW_PADDLE_LEFT_HORIZONTAL:
+
             MOV AH,0Ch  ;function to draw a pixel
             MOV AL,0Fh  ;choose white as the pixel color
             MOV BH,00h  ;specify the display page number (page 0)
@@ -290,6 +335,7 @@ CODE SEGMENT PARA 'CODE'
         MOV DX,PADDLE_RIGHT_Y
 
         DRAW_PADDLE_RIGHT_HORIZONTAL:
+
             MOV AH,0Ch  ;function to draw a pixel
             MOV AL,0Fh  ;choose white as the pixel color
             MOV BH,00h  ;specify the display page number (page 0)
@@ -308,6 +354,7 @@ CODE SEGMENT PARA 'CODE'
             SUB AX,PADDLE_RIGHT_Y
             CMP AX,PADDLE_HEIGHT
             JNG DRAW_PADDLE_RIGHT_HORIZONTAL
+
         RET
     DRAW_PADDLES ENDP
     
