@@ -11,6 +11,9 @@ DATA SEGMENT PARA 'DATA'
 
     TIME_AUX DB 0          ;define a variable to store the system time
 
+    TEXT_PLAYER_ONE_SCORE DB '0','$' 
+    TEXT_PLAYER_TWO_SCORE DB '0','$'
+    
     ;ball
     BALL_ORIGINAL_X DW 0A0h
     BALL_ORIGINAL_Y DW 64h
@@ -20,21 +23,22 @@ DATA SEGMENT PARA 'DATA'
     BALL_VELOCITY_X DW 05h ;define the velocity of the ball in the x direction
     BALL_VELOCITY_Y DW 02h ;define the velocity of the ball in the y direction
 
-    ;player paddles
-    ;player 1
+    ;players/paddles
+    ;left paddle/player 1
     PADDLE_LEFT_X DW 0Ah   ;define the x coordinate of the left paddle for player 1
     PADDLE_LEFT_Y DW 55h   ;define the y coordinate of the left paddle for player 1
     PLAYER_ONE_POINTS DB 0;define the points of player 1
     
-    ;player 2
+    ;right paddle/player 2
     PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
     PADDLE_RIGHT_Y DW 55h  ;define the y coordinate of the left paddle for player 2
     PLAYER_TWO_POINTS DB 0;define the points of player 2
 
-    ;common paddle attributes
+    ;common players/paddle attributes
     PADDLE_WIDTH DW 06h    ;define the width of the paddles (pixels)
     PADDLE_HEIGHT DW 1Fh   ;define the height of the paddles (pixels)
     PADDLE_VELOCITY DW 05h ;define the velocity of the paddles
+    WIN_POINTS DW 05h      ;define the winning score
 
 DATA ENDS
 
@@ -70,6 +74,8 @@ CODE SEGMENT PARA 'CODE'
             CALL MOVE_PADDLES ;move the player paddles
             CALL DRAW_PADDLES ;and draw the new positions
 
+            CALL DRAW_UI      ;draw the user interface
+
             JMP CHECK_TIME    ;check the time again
 
         RET
@@ -99,11 +105,23 @@ CODE SEGMENT PARA 'CODE'
         PLAYER_ONE_SCORES:
             INC PLAYER_ONE_POINTS ;increment the points of player one
             CALL RESET_POSITION   ;reset the ball position to the center of the window
+
+            CALL UPDATE_PLAYER_ONE_SCORE
+            
+            CMP PLAYER_ONE_POINTS,05h ;check if player one has reached the winning score
+            JGE GAME_OVER             ;if so, the game is over
+
             RET
 
         PLAYER_TWO_SCORES:
             INC PLAYER_TWO_POINTS ;increment the points of player two
             CALL RESET_POSITION   ;reset the ball position to the center of the window
+            
+            CALL UPDATE_PLAYER_TWO_SCORE
+
+            CMP PLAYER_TWO_POINTS,05h ;check if player one has reached the winning score  
+            JGE GAME_OVER             ;if so, the game is over
+
             RET
 
         RESET_POSITION: ;reset the ball position to the center of the window
@@ -113,6 +131,8 @@ CODE SEGMENT PARA 'CODE'
         GAME_OVER:
             MOV PLAYER_ONE_POINTS,00h ;reset the points of player one
             MOV PLAYER_TWO_POINTS,00h ;reset the points of player two
+            CALL UPDATE_PLAYER_ONE_SCORE
+            CALL UPDATE_PLAYER_TWO_SCORE
             RET
 
         ;vertical movement
@@ -403,6 +423,60 @@ CODE SEGMENT PARA 'CODE'
 
         RET
     DRAW_PADDLES ENDP
+
+    DRAW_UI PROC NEAR
+
+        ;player 1 points
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,04h  ;set the row position (4)
+        MOV DL,06h  ;set the column position (6)
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_PLAYER_ONE_SCORE ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;player 2 points
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,04h  ;set the row position (4)
+        MOV DL,1Fh  ;set the column position (6)
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_PLAYER_TWO_SCORE ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        RET
+
+    DRAW_UI ENDP
+
+    UPDATE_PLAYER_ONE_SCORE PROC NEAR
+
+        XOR AX,AX 
+        MOV AL,PLAYER_ONE_POINTS 
+
+        ;convert the ascii character to the corresponding number
+        ADD AL,30h
+        MOV [TEXT_PLAYER_ONE_SCORE],AL
+
+        RET
+
+    UPDATE_PLAYER_ONE_SCORE ENDP
+
+    UPDATE_PLAYER_TWO_SCORE PROC NEAR
+
+        XOR AX,AX 
+        MOV AL,PLAYER_TWO_POINTS 
+
+        ;convert the ascii character to the corresponding number
+        ADD AL,30h
+        MOV [TEXT_PLAYER_TWO_SCORE],AL
+
+        RET
+
+    UPDATE_PLAYER_TWO_SCORE ENDP
     
     CLEAR_SCREEN PROC NEAR ;clear the screen by restarting the video mode
 
