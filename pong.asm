@@ -24,10 +24,12 @@ DATA SEGMENT PARA 'DATA'
     ;player 1
     PADDLE_LEFT_X DW 0Ah   ;define the x coordinate of the left paddle for player 1
     PADDLE_LEFT_Y DW 55h   ;define the y coordinate of the left paddle for player 1
+    PLAYER_ONE_POINTS DB 0;define the points of player 1
     
     ;player 2
     PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
     PADDLE_RIGHT_Y DW 55h  ;define the y coordinate of the left paddle for player 2
+    PLAYER_TWO_POINTS DB 0;define the points of player 2
 
     ;common paddle attributes
     PADDLE_WIDTH DW 06h    ;define the width of the paddles (pixels)
@@ -84,18 +86,39 @@ CODE SEGMENT PARA 'CODE'
         ;BALL_X < 0 + WINDOW_BOUNDS ?
         MOV AX,WINDOW_BOUNDS
         CMP BALL_X,AX           ;check if the ball has reached the left edge of the window
-        JL RESET_POSITION       ;if so, reset the ball position
+        JL PLAYER_TWO_SCORES    ;if so, player two scores a point
 
         ;BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS ?
         MOV AX,WINDOW_WIDTH 
         SUB AX,BALL_SIZE
         SUB AX,WINDOW_BOUNDS
         CMP BALL_X,AX           ;check if the ball has reached the right edge of the window
-        JG RESET_POSITION       ;if so, reset the ball position
+        JG PLAYER_ONE_SCORES    ;if so, player one scores a point
+        JMP MOVE_BALL_VERTICAL
+
+        PLAYER_ONE_SCORES:
+            INC PLAYER_ONE_POINTS ;increment the points of player one
+            CALL RESET_POSITION   ;reset the ball position to the center of the window
+            RET
+
+        PLAYER_TWO_SCORES:
+            INC PLAYER_TWO_POINTS ;increment the points of player two
+            CALL RESET_POSITION   ;reset the ball position to the center of the window
+            RET
+
+        RESET_POSITION: ;reset the ball position to the center of the window
+            CALL RESET_BALL_POSITION
+            RET
+
+        GAME_OVER:
+            MOV PLAYER_ONE_POINTS,00h ;reset the points of player one
+            MOV PLAYER_TWO_POINTS,00h ;reset the points of player two
+            RET
 
         ;vertical movement
-        MOV AX,BALL_VELOCITY_Y
-        ADD BALL_Y,AX           ;update the y coordinate of the ball
+        MOVE_BALL_VERTICAL: 
+            MOV AX,BALL_VELOCITY_Y
+            ADD BALL_Y,AX           ;update the y coordinate of the ball
 
         ;vertical collision detection
         ;BALL_Y < 0 + WINDOW_BOUNDS ?
@@ -141,8 +164,7 @@ CODE SEGMENT PARA 'CODE'
         JNL CHECK_COLLISION_WITH_LEFT_PADDLE
 
         ;if all conditions above are met, a collision with the right paddle has occurred
-        NEG BALL_VELOCITY_X ;and the ball should reverse its x velocity
-        RET                 ;only one collision can occur at a time
+        JMP REVERSE_X ;and the ball should reverse its x velocity             
 
         ;left paddle collision
 
@@ -153,15 +175,39 @@ CODE SEGMENT PARA 'CODE'
 
         CHECK_COLLISION_WITH_LEFT_PADDLE:
 
-        RET
+            MOV AX,BALL_x
+            ADD AX,BALL_SIZE
+            CMP AX,PADDLE_LEFT_X
+            JNG EXIT_COLLISION
 
-        RESET_POSITION: ;reset the ball position to the center of the window
-            CALL RESET_BALL_POSITION
-            RET
+            MOV AX,PADDLE_LEFT_X
+            ADD AX,PADDLE_WIDTH
+            CMP BALL_X,AX
+            JNL EXIT_COLLISION
 
-        REVERSE_Y:
-            NEG BALL_VELOCITY_Y ;reverse the Y velocity
-            RET
+            MOV AX,BALL_Y
+            ADD AX,BALL_SIZE
+            CMP AX,PADDLE_LEFT_Y
+            JNG EXIT_COLLISION
+
+            MOV AX,PADDLE_LEFT_Y
+            ADD AX,PADDLE_HEIGHT
+            CMP BALL_Y,AX
+            JNL EXIT_COLLISION
+
+            ;if all conditions above are met, a collision with the left paddle has occurred
+            JMP REVERSE_X ;and the ball should reverse its x velocity
+
+            REVERSE_Y:
+                NEG BALL_VELOCITY_Y ;reverse the Y velocity
+                RET
+            
+            REVERSE_X:
+                NEG BALL_VELOCITY_X ;reverse the X velocity
+                RET ;only one collision can occur at a time
+            
+            EXIT_COLLISION:
+                RET
 
     MOVE_BALL ENDP
 
