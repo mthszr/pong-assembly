@@ -402,41 +402,50 @@ CODE SEGMENT PARA 'CODE'
         RET
     MOVE_PADDLES ENDP
 
-    RESET_BALL_POSITION PROC NEAR ;reset the position of the ball to the center of the window
+    RESET_BALL_POSITION PROC NEAR ; reset the position of the ball to the center of the window
 
-        MOV AX,BALL_ORIGINAL_X
-        MOV BALL_X,AX ;reset the x coordinate of the ball
+    MOV AX, BALL_ORIGINAL_X
+    MOV BALL_X, AX ; reset the x coordinate of the ball
 
-        MOV AX,BALL_ORIGINAL_Y
-        MOV BALL_Y,AX ;reset the y coordinate of the ball
+    MOV AX, BALL_ORIGINAL_Y
+    MOV BALL_Y, AX ; reset the y coordinate of the ball
 
-        RET
+    RET
+
     RESET_BALL_POSITION ENDP    
 
     DRAW_BALL PROC NEAR
+        MOV CX, BALL_X     ; set the x coordinate
+        MOV DX, BALL_Y     ; set the y coordinate
 
-        MOV CX,BALL_X ;set the initial x coordinate
-        MOV DX,BALL_Y ;set the initial y coordinate
+        DRAW_BALL_HORIZONTAL:
+            ; determine the color based on the ball's x-coordinate
+            MOV AX, CX
+            CMP AX, 0A0h       ; compare with the middle of the screen (160)
+            JL LEFT_SIDE       ; if less than 160, jump to left_side
+            MOV AL, 0Ch        ; set color to red for the right side
+            JMP SET_COLOR
 
-        DRAW_BALL_HORIZONTAL:  
+        LEFT_SIDE:
+            MOV AL, 0Ah        ; set color to green for the left side
 
-            MOV AH,0Ch  ;function to draw a pixel
-            MOV AL,0Fh  ;choose white as the pixel color (white)
-            MOV BH,00h  ;specify the display page number (page 0)
-            INT 10H     ;execute the configuration
+        SET_COLOR:
+            MOV AH, 0Ch        ; function to draw a pixel
+            MOV BH, 00h        ; specify the display page number (page 0)
+            INT 10h            ; execute the configuration
 
-            INC CX      ;move to the next pixel (CX = CX + 1)
-            MOV AX,CX   ;CX - BALL_X > BALL_SIZE ? nex line : next pixel
-            SUB AX,BALL_X
-            CMP AX,BALL_SIZE
+            INC CX             ; move to the next pixel horizontally
+            MOV AX, CX         ; cx - ball_x > ball_size ? next line : next pixel
+            SUB AX, BALL_X
+            CMP AX, BALL_SIZE
             JNG DRAW_BALL_HORIZONTAL
 
-            MOV CX,BALL_X ;reset the x coordinate
-            INC DX        ;move to the next line (DY = DY + 1)
+            MOV CX, BALL_X     ; reset the x coordinate
+            INC DX             ; move to the next line (dy = dy + 1)
 
-            MOV AX,DX     ;DX - BALL_Y > BALL_SIZE ? end : next line
-            SUB AX,BALL_Y
-            CMP AX,BALL_SIZE
+            MOV AX, DX         ; dx - ball_y > ball_size ? end : next line
+            SUB AX, BALL_Y
+            CMP AX, BALL_SIZE
             JNG DRAW_BALL_HORIZONTAL
 
         RET
@@ -444,46 +453,47 @@ CODE SEGMENT PARA 'CODE'
 
     DRAW_DIVIDER PROC NEAR
 
-    MOV CX, 0A0h       ; set the x coordinate to the middle of the screen (160)
-    MOV DX, 0          ; start at the top of the screen (y = 0)
+        MOV CX, 0A0h       ; set the x coordinate to the middle of the screen (160)
+        MOV DX, 0          ; start at the top of the screen (y = 0)
 
-    DRAW_VERTICAL_LINE:
-        ; draw a thicker line by drawing multiple adjacent pixels horizontally
-        MOV BX, CX         ; save the original x coordinate
-        MOV SI, 1          ; set the thickness of the line (4 pixels)
+        DRAW_VERTICAL_LINE:
+            ; draw a thicker line by drawing multiple adjacent pixels horizontally
+            MOV BX, CX         ; save the original x coordinate
+            MOV SI, 1          ; set the thickness of the line (4 pixels)
 
-    DRAW_THICK_LINE:
-        MOV AH, 0Ch        ; function to draw a pixel
-        MOV AL, 0Fh        ; choose white as the pixel color (white)
-        MOV BH, 00h        ; specify the display page number (page 0)
-        INT 10h            ; execute the configuration
+        DRAW_THICK_LINE:
+            MOV AH, 0Ch        ; function to draw a pixel
+            MOV AL, 0Fh        ; choose white as the pixel color (white)
+            MOV BH, 00h        ; specify the display page number (page 0)
+            INT 10h            ; execute the configuration
 
-        INC CX             ; move to the next pixel horizontally
-        DEC SI             ; decrease the thickness counter
-        JNZ DRAW_THICK_LINE ; if thickness counter is not zero, continue drawing
+            INC CX             ; move to the next pixel horizontally
+            DEC SI             ; decrease the thickness counter
+            JNZ DRAW_THICK_LINE ; if thickness counter is not zero, continue drawing
 
-        MOV CX, BX         ; restore the original x coordinate
+            MOV CX, BX         ; restore the original x coordinate
 
-        MOV SI, 10         ; set the height of the bar 
-    DRAW_VERTICAL_BAR:
-        MOV AH, 0Ch        ; function to draw a pixel
-        MOV AL, 0Fh        ; choose white as the pixel color (white)
-        MOV BH, 00h        ; specify the display page number (page 0)
-        INT 10h            ; execute the configuration
+            ; draw 10 pixels vertically
+            MOV SI, 10         ; set the height of the bar (10 pixels)
+        DRAW_VERTICAL_BAR:
+            MOV AH, 0Ch        ; function to draw a pixel
+            MOV AL, 0Fh        ; choose white as the pixel color (white)
+            MOV BH, 00h        ; specify the display page number (page 0)
+            INT 10h            ; execute the configuration
 
-        INC DX             ; move to the next pixel vertically
-        DEC SI             ; decrease the height counter
-        JNZ DRAW_VERTICAL_BAR ; if height counter is not zero, continue drawing
+            INC DX             ; move to the next pixel vertically
+            DEC SI             ; decrease the height counter
+            JNZ DRAW_VERTICAL_BAR ; if height counter is not zero, continue drawing
 
-        ; skip a few pixels to create the gap in the dashed line
-        ADD DX, 9          ; move down by 2 pixels to create the gap
-        CMP DX, 0C8h       ; compare y with the screen height (200)
-        JGE END_VERTICAL_LINE ; if y >= 200, end the drawing
+            ; skip a few pixels to create the gap in the dashed line
+            ADD DX, 5          ; move down by 2 pixels to create the gap
+            CMP DX, 0C8h       ; compare y with the screen height (200)
+            JGE END_VERTICAL_LINE ; if y >= 200, end the drawing
 
-        JMP DRAW_VERTICAL_LINE ; continue drawing the dashed line
+            JMP DRAW_VERTICAL_LINE ; continue drawing the dashed line
 
-    END_VERTICAL_LINE:
-        RET
+        END_VERTICAL_LINE:
+            RET
 
     DRAW_DIVIDER ENDP
 
