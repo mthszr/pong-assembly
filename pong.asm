@@ -95,6 +95,7 @@ CODE SEGMENT PARA 'CODE'
             CALL CLEAR_SCREEN ;clear the screen
             CALL MOVE_BALL    ;move the ball
             CALL DRAW_BALL    ;and draw the new position
+            CALL DRAW_DIVIDER ;draw the middle line divider
 
             CALL MOVE_PADDLES ;move the player paddles
             CALL DRAW_PADDLES ;and draw the new positions
@@ -440,6 +441,51 @@ CODE SEGMENT PARA 'CODE'
 
         RET
     DRAW_BALL ENDP
+
+    DRAW_DIVIDER PROC NEAR
+
+    MOV CX, 0A0h       ; set the x coordinate to the middle of the screen (160)
+    MOV DX, 0          ; start at the top of the screen (y = 0)
+
+    DRAW_VERTICAL_LINE:
+        ; draw a thicker line by drawing multiple adjacent pixels horizontally
+        MOV BX, CX         ; save the original x coordinate
+        MOV SI, 1          ; set the thickness of the line (4 pixels)
+
+    DRAW_THICK_LINE:
+        MOV AH, 0Ch        ; function to draw a pixel
+        MOV AL, 0Fh        ; choose white as the pixel color (white)
+        MOV BH, 00h        ; specify the display page number (page 0)
+        INT 10h            ; execute the configuration
+
+        INC CX             ; move to the next pixel horizontally
+        DEC SI             ; decrease the thickness counter
+        JNZ DRAW_THICK_LINE ; if thickness counter is not zero, continue drawing
+
+        MOV CX, BX         ; restore the original x coordinate
+
+        MOV SI, 10         ; set the height of the bar 
+    DRAW_VERTICAL_BAR:
+        MOV AH, 0Ch        ; function to draw a pixel
+        MOV AL, 0Fh        ; choose white as the pixel color (white)
+        MOV BH, 00h        ; specify the display page number (page 0)
+        INT 10h            ; execute the configuration
+
+        INC DX             ; move to the next pixel vertically
+        DEC SI             ; decrease the height counter
+        JNZ DRAW_VERTICAL_BAR ; if height counter is not zero, continue drawing
+
+        ; skip a few pixels to create the gap in the dashed line
+        ADD DX, 9          ; move down by 2 pixels to create the gap
+        CMP DX, 0C8h       ; compare y with the screen height (200)
+        JGE END_VERTICAL_LINE ; if y >= 200, end the drawing
+
+        JMP DRAW_VERTICAL_LINE ; continue drawing the dashed line
+
+    END_VERTICAL_LINE:
+        RET
+
+    DRAW_DIVIDER ENDP
 
     DRAW_PADDLES PROC NEAR
 
