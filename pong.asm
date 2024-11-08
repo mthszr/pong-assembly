@@ -9,15 +9,24 @@ DATA SEGMENT PARA 'DATA'
     WINDOW_HEIGHT DW 0C8h  ;define the height of the window (200 pixels)
     WINDOW_BOUNDS DW 6     ;define the bounds of the window (6 pixels from the edge)
 
+    ;game state variables
     TIME_AUX DB 0          ;define a variable to store the system time
     GAME_ACTIVE DB 1       ;define a flag to indicate if the game is active
-    WINNER_INDEX DB 0      ;define a variable to store the index of the winner  
+    EXITING_GAME DB 0      ;define a flag to indicate if the game is exiting
+    WINNER_INDEX DB 0      ;define a variable to store the index of the winner 
+    CURRENT_SCENE DB 0     ;define a variable to store the current scene (1 = game, 0 = main menu)
 
+    ;user interface text
     TEXT_PLAYER_ONE_SCORE DB '0','$' 
     TEXT_PLAYER_TWO_SCORE DB '0','$'
     TEXT_GAME_OVER DB 'GAME OVER','$'
     TEXT_GAME_WINNER DB 'Player 0 wins!','$'
     TEXT_PLAY_AGAIN DB 'Press R to play again','$'
+    TEXT_MAIN_MENU DB 'Press E to exit to the menu','$'
+    TEXT_MENU_TITLE DB 'PONG','$'
+    TEXT_MENU_SINGLEPLAYER DB 'SINGLEPLAYER - S KEY','$'
+    TEXT_MENU_MULTIPLAYER DB 'MULTIPLAYER - M KEY','$'
+    TEXT_MENU_EXIT DB 'EXIT GAME - E KEY','$'
     
     ;ball
     BALL_ORIGINAL_X DW 0A0h
@@ -63,6 +72,12 @@ CODE SEGMENT PARA 'CODE'
 
         CHECK_TIME:     
 
+            CMP EXITING_GAME,01h ;check if the game is exiting
+            JE START_EXIT_GAME   ;if so, exit the game
+
+            CMP CURRENT_SCENE,00h ;check the current scene
+            JE SHOW_MAIN_MENU     ;if the current scene is the main menu, draw the main menu
+            
             CMP GAME_ACTIVE,00h ;check if the game is active   
             JE SHOW_GAME_OVER_MENU ;if not, show the game over menu
 
@@ -90,7 +105,14 @@ CODE SEGMENT PARA 'CODE'
             SHOW_GAME_OVER_MENU:
                 CALL DRAW_GAME_OVER_MENU ;draw the game over menu
                 JMP CHECK_TIME
+            
+            SHOW_MAIN_MENU:
+                CALL DRAW_MAIN_MENU ;draw the main menu
+                JMP CHECK_TIME
 
+            START_EXIT_GAME:
+                CALL CONCLUDE_EXIT_GAME ;conclude the game and exit
+        
         RET
 
     MAIN ENDP
@@ -514,7 +536,7 @@ CODE SEGMENT PARA 'CODE'
         MOV AH,02h  ;function to set the cursor position
         MOV BH,00h  ;specify the display page number (page 0)
         MOV DH,04h  ;set the row position 
-        MOV DL,0Fh  ;set the column position
+        MOV DL,04h  ;set the column position
         INT 10h     ;execute the configuration
 
         MOV AH,09h  ;function to display a string
@@ -525,7 +547,7 @@ CODE SEGMENT PARA 'CODE'
         MOV AH,02h  ;function to set the cursor position
         MOV BH,00h  ;specify the display page number (page 0)
         MOV DH,06h  ;set the row position 
-        MOV DL,0Fh  ;set the column position
+        MOV DL,04h  ;set the column position
         INT 10h     ;execute the configuration
 
         CALL UPDATE_WINNER_TEXT
@@ -538,11 +560,22 @@ CODE SEGMENT PARA 'CODE'
         MOV AH,02h  ;function to set the cursor position
         MOV BH,00h  ;specify the display page number (page 0)
         MOV DH,08h  ;set the row position 
-        MOV DL,9h  ;set the column position
+        MOV DL,04h   ;set the column position
         INT 10h     ;execute the configuration
 
         MOV AH,09h  ;function to display a string
         LEA DX,TEXT_PLAY_AGAIN ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;show the main menu message
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,0Ah  ;set the row position 
+        MOV DL,04h   ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_MAIN_MENU ;load the address of the string
         INT 21h     ;execute the configuration
 
         ;wait for a key press to restart the game
@@ -553,6 +586,11 @@ CODE SEGMENT PARA 'CODE'
         JE RESTART_GAME
         CMP AL,'r'  ;check if the key pressed is 'r' (restart the game)
         JE RESTART_GAME
+        CMP AL,'E'  ;check if the key pressed is 'E' (exit to the main menu)
+        JE EXIT_TO_MAIN_MENU
+        CMP AL,'e'  ;check if the key pressed is 'e' (exit to the main menu)
+        JE EXIT_TO_MAIN_MENU
+
         RET
 
         RESTART_GAME:
@@ -561,9 +599,98 @@ CODE SEGMENT PARA 'CODE'
             CALL RESET_POSITION ;reset the ball position
             RET
 
+        EXIT_TO_MAIN_MENU:
+            MOV GAME_ACTIVE,00h ;set the game flag to inactive
+            MOV CURRENT_SCENE,00h ;set the current scene to the main menu
+            RET
+        
+
         RET
 
     DRAW_GAME_OVER_MENU ENDP
+
+    DRAW_MAIN_MENU PROC NEAR
+
+        CALL CLEAR_SCREEN
+
+        ;show the menu title
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,04h  ;set the row position 
+        MOV DL,04h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_MENU_TITLE ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;show the singleplayer option
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,06h  ;set the row position 
+        MOV DL,04h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_MENU_SINGLEPLAYER ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;show the multiplayer option
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,08h  ;set the row position 
+        MOV DL,04h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_MENU_MULTIPLAYER ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        ;show the exit option
+        MOV AH,02h  ;function to set the cursor position
+        MOV BH,00h  ;specify the display page number (page 0)
+        MOV DH,0Ah  ;set the row position 
+        MOV DL,04h  ;set the column position
+        INT 10h     ;execute the configuration
+
+        MOV AH,09h  ;function to display a string
+        LEA DX,TEXT_MENU_EXIT ;load the address of the string
+        INT 21h     ;execute the configuration
+
+        MAIN_MENU_WAIT_FOR_KEY_PRESS:
+            ;wait for a key press 
+            MOV AH,00h  ;function to check for a key press
+            INT 16h     ;execute the configuration
+
+            ;check the key pressed
+            CMP AL,'S'  ;check if the key pressed is 'S' (singleplayer)
+            JE START_SINGLEPLAYER
+            CMP AL,'s'  ;check if the key pressed is 's' (singleplayer)
+            JE START_SINGLEPLAYER
+            CMP AL,'M'  ;check if the key pressed is 'M' (multiplayer)
+            JE START_MULTIPLAYER
+            CMP AL,'m'  ;check if the key pressed is 'm' (multiplayer)
+            JE START_MULTIPLAYER
+            CMP AL,'E'  ;check if the key pressed is 'E' (exit)
+            JE EXIT_GAME
+            CMP AL,'e'  ;check if the key pressed is 'e' (exit)
+            JE EXIT_GAME
+            JMP MAIN_MENU_WAIT_FOR_KEY_PRESS
+
+        START_SINGLEPLAYER:
+            MOV CURRENT_SCENE,01h ;set the current scene to the game
+            MOV GAME_ACTIVE,01h   ;set the game flag to active
+            RET
+        
+        START_MULTIPLAYER:
+            JMP MAIN_MENU_WAIT_FOR_KEY_PRESS
+
+        EXIT_GAME:
+            MOV EXITING_GAME,01h ;set the flag to exit the game
+            RET
+        RET
+    
+    DRAW_MAIN_MENU ENDP
 
     UPDATE_WINNER_TEXT PROC NEAR
 
@@ -589,6 +716,19 @@ CODE SEGMENT PARA 'CODE'
         RET
 
     CLEAR_SCREEN ENDP
+
+    CONCLUDE_EXIT_GAME PROC NEAR ;goees back to text mode
+
+        MOV AH,00h  ;function to set video mode
+        MOV AL,02h  ;set the video mode (text mode)
+        INT 10h     ;execute the configuration
+
+        MOV AH,4Ch  ;function to exit the program
+        INT 21h     ;execute the configuration
+
+        RET
+
+    CONCLUDE_EXIT_GAME ENDP
 
 CODE ENDS
 END MAIN
