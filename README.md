@@ -19,7 +19,7 @@ Download this repo, extract it and paste all the all files in your newly created
 ### Open DOSbox .conf file and write the code at bottom for automatic mount on every launch.
 
 ```text
-$ mount c c:\[FOLDER PATH]
+mount c c:\[FOLDER PATH]
 c:
 ```
 
