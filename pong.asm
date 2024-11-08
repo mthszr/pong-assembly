@@ -47,12 +47,13 @@ DATA SEGMENT PARA 'DATA'
     PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
     PADDLE_RIGHT_Y DW 55h  ;define the y coordinate of the left paddle for player 2
     PLAYER_TWO_POINTS DB 0;define the points of player 2
+    AI_PLAYER DB 0         ;define a flag to indicate if player 2 is controlled by the AI
 
     ;common players/paddle attributes
     PADDLE_WIDTH DW 06h    ;define the width of the paddles (pixels)
-    PADDLE_HEIGHT DW 1Fh   ;define the height of the paddles (pixels)
-    PADDLE_VELOCITY DW 05h ;define the velocity of the paddles
-    WIN_POINTS DW 05h      ;define the winning score
+    PADDLE_HEIGHT DW 25h   ;define the height of the paddles (pixels)
+    PADDLE_VELOCITY DW 0Fh ;define the velocity of the paddles
+    WIN_POINTS DW 03h      ;define the winning score
 
 DATA ENDS
 
@@ -143,7 +144,7 @@ CODE SEGMENT PARA 'CODE'
 
             CALL UPDATE_PLAYER_ONE_SCORE
             
-            CMP PLAYER_ONE_POINTS,01h ;check if player one has reached the winning score
+            CMP PLAYER_ONE_POINTS,03h ;check if player one has reached the winning score
             JGE GAME_OVER             ;if so, the game is over
 
             RET
@@ -154,7 +155,7 @@ CODE SEGMENT PARA 'CODE'
             
             CALL UPDATE_PLAYER_TWO_SCORE
 
-            CMP PLAYER_TWO_POINTS,05h ;check if player one has reached the winning score  
+            CMP PLAYER_TWO_POINTS,03h ;check if player one has reached the winning score  
             JGE GAME_OVER             ;if so, the game is over
 
             RET
@@ -166,7 +167,7 @@ CODE SEGMENT PARA 'CODE'
         GAME_OVER:
 
             ;determine the winner
-            CMP PLAYER_ONE_POINTS,00h
+            CMP PLAYER_ONE_POINTS,03h
             JNL WINNER_IS_PLAYER_ONE
             JMP WINNER_IS_PLAYER_TWO
 
@@ -336,18 +337,37 @@ CODE SEGMENT PARA 'CODE'
 
         CHECK_RIGHT_PADDLE_MOVEMENT:
 
-            ;AL contains the ASCII code of the key pressed
-            CMP AL,6Fh               ;check if the key pressed is 'o' (move the right paddle up)
-            JE MOVE_RIGHT_PADDLE_UP
-            CMP AL,4Fh               ;check if the key pressed is 'O' (move the right paddle up)
-            JE MOVE_RIGHT_PADDLE_UP
+            CMP AI_PLAYER,01h ;check if player 2 is controlled by the AI
+            JE CONTROL_BY_AI  ;if so, control the right paddle with the AI
+            
+            ;user control
+            CHECK_FOR_KEYS:
+                ;AL contains the ASCII code of the key pressed
+                CMP AL,6Fh               ;check if the key pressed is 'o' (move the right paddle up)
+                JE MOVE_RIGHT_PADDLE_UP
+                CMP AL,4Fh               ;check if the key pressed is 'O' (move the right paddle up)
+                JE MOVE_RIGHT_PADDLE_UP
 
-            CMP AL,6Ch               ;check if the key pressed is 'l' (move the right paddle down)
-            JE MOVE_RIGHT_PADDLE_DOWN
-            CMP AL,4Ch               ;check if the key pressed is 'L' (move the right paddle down)
-            JE MOVE_RIGHT_PADDLE_DOWN
-            JMP EXIT_PADDLE_MOVEMENT ;if the key pressed is not 'O' or 'L', check the right paddle movement
+                CMP AL,6Ch               ;check if the key pressed is 'l' (move the right paddle down)
+                JE MOVE_RIGHT_PADDLE_DOWN
+                CMP AL,4Ch               ;check if the key pressed is 'L' (move the right paddle down)
+                JE MOVE_RIGHT_PADDLE_DOWN
+                JMP EXIT_PADDLE_MOVEMENT ;if the key pressed is not 'O' or 'L', check the right paddle movement
 
+            ;AI control
+            CONTROL_BY_AI:
+                MOV AX,BALL_Y
+                ADD AX,BALL_SIZE
+                CMP AX,PADDLE_RIGHT_Y ;check if the ball is below the right paddle
+                JL MOVE_RIGHT_PADDLE_UP
+
+                MOV AX,PADDLE_RIGHT_Y
+                ADD AX,PADDLE_HEIGHT
+                CMP AX,BALL_Y ;check if the ball is above the right paddle
+                JL MOVE_RIGHT_PADDLE_DOWN
+
+                JMP EXIT_PADDLE_MOVEMENT ;if the ball is at the same height as the right paddle, do not move
+            
             MOVE_RIGHT_PADDLE_UP:
                 MOV AX, PADDLE_VELOCITY
                 SUB PADDLE_RIGHT_Y,AX           ;move the right paddle up
@@ -680,10 +700,14 @@ CODE SEGMENT PARA 'CODE'
         START_SINGLEPLAYER:
             MOV CURRENT_SCENE,01h ;set the current scene to the game
             MOV GAME_ACTIVE,01h   ;set the game flag to active
+            MOV AI_PLAYER,00h     ;set the AI flag to inactive
             RET
         
         START_MULTIPLAYER:
-            JMP MAIN_MENU_WAIT_FOR_KEY_PRESS
+            MOV CURRENT_SCENE,01h ;set the current scene to the game
+            MOV GAME_ACTIVE,01h        ;set the game flag to active
+            MOV AI_PLAYER,01h          ;set the AI flag to active
+            RET
 
         EXIT_GAME:
             MOV EXITING_GAME,01h ;set the flag to exit the game
@@ -730,5 +754,6 @@ CODE SEGMENT PARA 'CODE'
 
     CONCLUDE_EXIT_GAME ENDP
 
-CODE ENDS
+CODE ENDS;
+
 END MAIN
