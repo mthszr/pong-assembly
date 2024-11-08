@@ -8,19 +8,22 @@
 
 First install these programs:
 
-- [DOSBOX](https://www.dosbox.com/download.php?main=1)
+- [DOSbox](https://www.dosbox.com/download.php?main=1)
 - 8086 Assembler
 - A text editor
 
 ## Run Procedure
 
-Open DOSBOX
+Download this repo, extract it and paste all the all files in your newly created folder. The assembler is already included 
 
-### Indicate where game folder is
+### Open DOSbox .conf file and write the code at bottom for automatic mount on every launch.
 
-```console
-$ mount c [FOLDER PATH]
+```text
+$ mount c c:\[FOLDER PATH]
+c:
 ```
+
+Open DOSbox and type:
 
 ### Compile the assembly file
 
