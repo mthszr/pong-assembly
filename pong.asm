@@ -27,11 +27,6 @@ DATA SEGMENT PARA 'DATA'
     TEXT_MENU_SINGLEPLAYER DB 'SINGLEPLAYER - S KEY','$'
     TEXT_MENU_MULTIPLAYER DB 'MULTIPLAYER - M KEY','$'
     TEXT_MENU_EXIT DB 'EXIT GAME - E KEY','$'
-
-    ; text color attributes
-    COLOR_WHITE DB 0Fh     ; white color attribute
-    COLOR_GREEN DB 0Ah     ; green color attribute
-    COLOR_RED DB 0Ch       ; red color attribute
     
     ;ball
     BALL_ORIGINAL_X DW 0A0h
@@ -47,11 +42,17 @@ DATA SEGMENT PARA 'DATA'
     PADDLE_LEFT_X DW 0Ah   ;define the x coordinate of the left paddle for player 1
     PADDLE_LEFT_Y DW 55h   ;define the y coordinate of the left paddle for player 1
     PLAYER_ONE_POINTS DB 0;define the points of player 1
+    
+    ;right paddle/player 2
+    PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
+    PADDLE_RIGHT_Y DW 55h  ;define the y coordinate of the left paddle for player 2
+    PLAYER_TWO_POINTS DB 0;define the points of player 2
+    AI_PLAYER DB 0         ;define a flag to indicate if player 2 is controlled by the AI
 
     ;common players/paddle attributes
     PADDLE_WIDTH DW 06h    ;define the width of the paddles (pixels)
     PADDLE_HEIGHT DW 25h   ;define the height of the paddles (pixels)
-    PADDLE_VELOCITY DW 14h ;define the velocity of the paddles
+    PADDLE_VELOCITY DW 0Fh ;define the velocity of the paddles
     WIN_POINTS DW 03h      ;define the winning score
 
 DATA ENDS
@@ -70,8 +71,8 @@ CODE SEGMENT PARA 'CODE'
 
         CALL CLEAR_SCREEN           ;clear the screen
 
-        CHECK_TIME:            
-            
+        CHECK_TIME:     
+
             CMP EXITING_GAME,01h ;check if the game is exiting
             JE START_EXIT_GAME   ;if so, exit the game
 
@@ -113,7 +114,7 @@ CODE SEGMENT PARA 'CODE'
 
             START_EXIT_GAME:
                 CALL CONCLUDE_EXIT_GAME ;conclude the game and exit
-
+        
         RET
 
     MAIN ENDP
@@ -403,13 +404,13 @@ CODE SEGMENT PARA 'CODE'
 
     RESET_BALL_POSITION PROC NEAR ; reset the position of the ball to the center of the window
 
-        MOV AX, BALL_ORIGINAL_X
-        MOV BALL_X, AX ; reset the x coordinate of the ball
+    MOV AX, BALL_ORIGINAL_X
+    MOV BALL_X, AX ; reset the x coordinate of the ball
 
-        MOV AX, BALL_ORIGINAL_Y
-        MOV BALL_Y, AX ; reset the y coordinate of the ball
+    MOV AX, BALL_ORIGINAL_Y
+    MOV BALL_Y, AX ; reset the y coordinate of the ball
 
-        RET
+    RET
 
     RESET_BALL_POSITION ENDP    
 
