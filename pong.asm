@@ -12,7 +12,6 @@ DATA SEGMENT PARA 'DATA'
     ;game state variables
     TIME_AUX DB 0          ;define a variable to store the system time
     GAME_ACTIVE DB 1       ;define a flag to indicate if the game is active
-    GAME_PAUSED DB 0       ;define a flag to indicate if the game is paused
     EXITING_GAME DB 0      ;define a flag to indicate if the game is exiting
     WINNER_INDEX DB 0      ;define a variable to store the index of the winner 
     CURRENT_SCENE DB 0     ;define a variable to store the current scene (1 = game, 0 = main menu)
@@ -28,6 +27,11 @@ DATA SEGMENT PARA 'DATA'
     TEXT_MENU_SINGLEPLAYER DB 'SINGLEPLAYER - S KEY','$'
     TEXT_MENU_MULTIPLAYER DB 'MULTIPLAYER - M KEY','$'
     TEXT_MENU_EXIT DB 'EXIT GAME - E KEY','$'
+
+    ; text color attributes
+    COLOR_WHITE DB 0Fh     ; white color attribute
+    COLOR_GREEN DB 0Ah     ; green color attribute
+    COLOR_RED DB 0Ch       ; red color attribute
     
     ;ball
     BALL_ORIGINAL_X DW 0A0h
@@ -43,17 +47,11 @@ DATA SEGMENT PARA 'DATA'
     PADDLE_LEFT_X DW 0Ah   ;define the x coordinate of the left paddle for player 1
     PADDLE_LEFT_Y DW 55h   ;define the y coordinate of the left paddle for player 1
     PLAYER_ONE_POINTS DB 0;define the points of player 1
-    
-    ;right paddle/player 2
-    PADDLE_RIGHT_X DW 130h ;define the x coordinate of the left paddle for player 2
-    PADDLE_RIGHT_Y DW 55h  ;define the y coordinate of the left paddle for player 2
-    PLAYER_TWO_POINTS DB 0;define the points of player 2
-    AI_PLAYER DB 0         ;define a flag to indicate if player 2 is controlled by the AI
 
     ;common players/paddle attributes
     PADDLE_WIDTH DW 06h    ;define the width of the paddles (pixels)
     PADDLE_HEIGHT DW 25h   ;define the height of the paddles (pixels)
-    PADDLE_VELOCITY DW 0Fh ;define the velocity of the paddles
+    PADDLE_VELOCITY DW 14h ;define the velocity of the paddles
     WIN_POINTS DW 03h      ;define the winning score
 
 DATA ENDS
@@ -72,11 +70,7 @@ CODE SEGMENT PARA 'CODE'
 
         CALL CLEAR_SCREEN           ;clear the screen
 
-        CHECK_TIME:     
-
-            CALL CHECK_PAUSE_KEY ;check if the pause key has been pressed
-            CMP GAME_PAUSED,01h   ;check if the game is paused
-            JE CHECK_TIME         ;if so, keep checking the time
+        CHECK_TIME:            
             
             CMP EXITING_GAME,01h ;check if the game is exiting
             JE START_EXIT_GAME   ;if so, exit the game
@@ -119,7 +113,7 @@ CODE SEGMENT PARA 'CODE'
 
             START_EXIT_GAME:
                 CALL CONCLUDE_EXIT_GAME ;conclude the game and exit
-        
+
         RET
 
     MAIN ENDP
@@ -608,33 +602,6 @@ CODE SEGMENT PARA 'CODE'
         RET
 
     UPDATE_PLAYER_TWO_SCORE ENDP
-
-    CHECK_PAUSE_KEY PROC NEAR
-
-        MOV AH,01h
-        INT 16h
-        JZ NO_KEY_PRESSED
-
-        MOV AH,00h
-        INT 16h
-        CMP AL,20h
-        JNE NO_KEY_PRESSED
-
-        ;toggle the game paused flag
-        CMP GAME_PAUSED,00h
-        JE PAUSE_GAME
-        MOV GAME_PAUSED,00h
-        JMP NO_KEY_PRESSED
-
-        PAUSE_GAME:
-            MOV GAME_PAUSED,01h
-
-        NO_KEY_PRESSED:
-            RET
-
-        RET
-
-    CHECK_PAUSE_KEY ENDP
 
     DRAW_GAME_OVER_MENU PROC NEAR
 
