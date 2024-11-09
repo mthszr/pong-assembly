@@ -12,6 +12,7 @@ DATA SEGMENT PARA 'DATA'
     ;game state variables
     TIME_AUX DB 0          ;define a variable to store the system time
     GAME_ACTIVE DB 1       ;define a flag to indicate if the game is active
+    GAME_PAUSED DB 0       ;define a flag to indicate if the game is paused
     EXITING_GAME DB 0      ;define a flag to indicate if the game is exiting
     WINNER_INDEX DB 0      ;define a variable to store the index of the winner 
     CURRENT_SCENE DB 0     ;define a variable to store the current scene (1 = game, 0 = main menu)
@@ -73,6 +74,10 @@ CODE SEGMENT PARA 'CODE'
 
         CHECK_TIME:     
 
+            CALL CHECK_PAUSE_KEY ;check if the pause key has been pressed
+            CMP GAME_PAUSED,01h   ;check if the game is paused
+            JE CHECK_TIME         ;if so, keep checking the time
+            
             CMP EXITING_GAME,01h ;check if the game is exiting
             JE START_EXIT_GAME   ;if so, exit the game
 
@@ -404,13 +409,13 @@ CODE SEGMENT PARA 'CODE'
 
     RESET_BALL_POSITION PROC NEAR ; reset the position of the ball to the center of the window
 
-    MOV AX, BALL_ORIGINAL_X
-    MOV BALL_X, AX ; reset the x coordinate of the ball
+        MOV AX, BALL_ORIGINAL_X
+        MOV BALL_X, AX ; reset the x coordinate of the ball
 
-    MOV AX, BALL_ORIGINAL_Y
-    MOV BALL_Y, AX ; reset the y coordinate of the ball
+        MOV AX, BALL_ORIGINAL_Y
+        MOV BALL_Y, AX ; reset the y coordinate of the ball
 
-    RET
+        RET
 
     RESET_BALL_POSITION ENDP    
 
@@ -603,6 +608,33 @@ CODE SEGMENT PARA 'CODE'
         RET
 
     UPDATE_PLAYER_TWO_SCORE ENDP
+
+    CHECK_PAUSE_KEY PROC NEAR
+
+        MOV AH,01h
+        INT 16h
+        JZ NO_KEY_PRESSED
+
+        MOV AH,00h
+        INT 16h
+        CMP AL,20h
+        JNE NO_KEY_PRESSED
+
+        ;toggle the game paused flag
+        CMP GAME_PAUSED,00h
+        JE PAUSE_GAME
+        MOV GAME_PAUSED,00h
+        JMP NO_KEY_PRESSED
+
+        PAUSE_GAME:
+            MOV GAME_PAUSED,01h
+
+        NO_KEY_PRESSED:
+            RET
+
+        RET
+
+    CHECK_PAUSE_KEY ENDP
 
     DRAW_GAME_OVER_MENU PROC NEAR
 
